@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?language javascript?>
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.ChatController">
+   <children>
+      <ListView fx:id="neighborAddress" layoutY="14.0" prefHeight="200.0" prefWidth="300.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="40.0">
+
+      </ListView>
+      <Text layoutX="27.0" layoutY="21.0" strokeType="OUTSIDE" strokeWidth="0.0" text="PEERS" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
+         <font>
+            <Font size="20.0" />
+         </font>
+      </Text>
+      <Button fx:id="addPeer" layoutX="219.0" layoutY="9.0" mnemonicParsing="false" onAction="#handleAddPeerButtonAction" text="ADD" />
+      <Button fx:id="refresh" layoutX="113.0" layoutY="9.0" mnemonicParsing="false" text="Refresh" onAction="#handleRefreshButtonAction"/>
+   </children>
+    <stylesheets>
+        <URL value="@Login.css" />
+    </stylesheets>
+</AnchorPane>
