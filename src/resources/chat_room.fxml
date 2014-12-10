@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?language javascript?>
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.ChatRoomController">
+    <stylesheets>
+        <URL value="@Login.css" />
+    </stylesheets>
+   <children>
+      <TextField fx:id="input" layoutX="64.0" layoutY="289.0" prefHeight="25.0" prefWidth="300.0" />
+      <Button layoutX="433.0" layoutY="288.0" mnemonicParsing="false" text="SHOUT" onAction="#handleShutAction"/>
+   </children>
+</AnchorPane>

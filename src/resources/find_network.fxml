@@ -20,11 +20,11 @@
    
        <Label text="Identification:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
    
-       <TextField fx:id="identification" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+       <TextField fx:id="identification" GridPane.columnIndex="1" GridPane.rowIndex="1" onAction="#handleInputFinishedAction"/>
    
        <Label text="EntryIP:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
    
-       <TextField fx:id="entryIP" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+       <TextField fx:id="entryIP" GridPane.columnIndex="1" GridPane.rowIndex="2" onAction="#handleInputFinishedAction"/>
    
        <HBox alignment="bottom_right" spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="4">
       <children>

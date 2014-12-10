@@ -20,9 +20,10 @@ public class FindPeerController {
 
     @FXML
     private void handleFindButtonAction(ActionEvent event) {
-        String peerID = peerIdTestField.getText();
-        if (MyPeer.checkOnLine(Number160.createHash(peerID))) {
+        String peerName = peerIdTestField.getText();
+        if (MyPeer.checkOnLine(Number160.createHash(peerName))) {
             closeSelf();
+            MyPeer.addPeer(peerName);
             ChatController.refreshNeighbor();
         }
         else {

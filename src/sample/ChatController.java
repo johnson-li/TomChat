@@ -1,8 +1,10 @@
 package sample;
 
+import com.sun.javafx.scene.control.skin.LabeledText;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -10,6 +12,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.futures.BaseFutureAdapter;
@@ -35,7 +38,7 @@ public class ChatController implements Initializable{
     public void initialize(URL location, ResourceBundle resources) {
         neighborAddress.setItems(neighborAddressObservableList);
         refreshNeighbor();
-        initMessageGetListener();
+        initNeighborClickListener();
     }
 
     @FXML
@@ -78,12 +81,37 @@ public class ChatController implements Initializable{
         stage.show();
     }
 
-    public void initMessageGetListener() {
-        MyPeer.initMessageGetListener(new BaseFutureAdapter<FutureGet>() {
+    void initNeighborClickListener() {
+        neighborAddress.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
-            public void operationComplete(FutureGet future) throws Exception {
-                logger.info("received message: " + future.data());
+            public void handle(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    String peerName = ((LabeledText)(event.getPickResult().getIntersectedNode())).getText();
+                    int location = peerName.indexOf("(");
+                    peerName = peerName.substring(0, location);
+                    startChatRoom(peerName);
+                }
             }
         });
+
+    }
+
+    void startChatRoom(String peerName) {
+        Stage stage = new Stage();
+        stage.setResizable(false);
+        Parent root;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("../resources/chat_room.fxml"));
+            root = loader.load();
+            ChatRoomController chatRoomController = loader.getController();
+            chatRoomController.init(peerName);
+        }
+        catch (Exception e) {
+            logger.catching(e);
+            return;
+        }
+        stage.setTitle(peerName);
+        stage.setScene(new Scene(root));
+        stage.show();
     }
 }

@@ -40,6 +40,23 @@ public class LoginController {
     }
 
     @FXML
+    protected void handleInputFinishedAction(ActionEvent actionEvent) {
+//        actionTarget.setText("Sign in button pressed");
+//        String ip = entryIP.getText();
+//        if (!Utils.checkIP(ip)) {
+//            showWarning("Invalid IP address!");
+//            return;
+//        }
+//        if (!MyPeer.initPeer(identification.getText(), ip)) {
+//            showWarning("Connecting to p2p network failed");
+//            return;
+//        }
+//        logger.debug(MyPeer.getPeerAddress());
+//        closeWindow(enter);
+//        startChat();
+    }
+
+    @FXML
     protected void handleSettingButtonAction(ActionEvent event) {
         startSetting();
     }

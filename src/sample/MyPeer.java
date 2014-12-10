@@ -66,6 +66,7 @@ public class MyPeer {
 
     static void initPeerListener() {
         FutureGet futureGet = clientPeerDHT.get(clientPeerDHT.peerID()).start();
+        if (messageGetListener == null) initMessageGetListener();
         futureGet.addListener(messageGetListener);
     }
 
@@ -78,11 +79,24 @@ public class MyPeer {
     }
 
     public static boolean checkOnLine(Number160 number160) {
-        return false;
+        return true;
     }
 
     public static void logout() {
         clientPeerDHT.shutdown();
         neighborPeers.clear();
+    }
+
+    static void initMessageGetListener() {
+        initMessageGetListener(new BaseFutureAdapter<FutureGet>() {
+            @Override
+            public void operationComplete(FutureGet future) throws Exception {
+                logger.info("received message: " + future.data());
+            }
+        });
+    }
+
+    public static void addPeer(String peerName) {
+        neighborPeers.put(Number160.createHash(peerName), peerName);
     }
 }
