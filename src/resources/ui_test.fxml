@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?language javascript?>
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.UITestController">
+    <stylesheets>
+        <URL value="@ui_test.css" />
+    </stylesheets>
+   <children>
+      <ListView id="chatList" fx:id="chatList" layoutX="200.0" layoutY="200.0" prefHeight="500.0" prefWidth="200.0"
+                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+      <TextField fx:id="input" layoutX="14.0" layoutY="541.0" prefHeight="25.0" prefWidth="420.0" />
+      <Button layoutX="496.0" layoutY="541.0" mnemonicParsing="false" onAction="#handleShoutAction" text="SHOUT" />
+   </children>
+</AnchorPane>

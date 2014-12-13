@@ -93,7 +93,6 @@ public class ChatController implements Initializable{
                 }
             }
         });
-
     }
 
     void startChatRoom(String peerName) {

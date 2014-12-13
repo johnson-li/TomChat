@@ -3,6 +3,7 @@ package sample;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
@@ -12,40 +13,45 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
-import net.tomp2p.dht.FuturePut;
-import net.tomp2p.nat.FutureNAT;
-import net.tomp2p.peers.Number160;
-import net.tomp2p.storage.Data;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * Created by johnson on 12/10/14.
+ * Created by johnson on 12/11/14.
  */
-public class ChatRoomController implements Initializable{
+public class UITestController implements Initializable{
     static Logger logger = LogManager.getLogger();
     static final int imageSize = 50;
-
-    @FXML private TextField input;
-
-    @FXML private Button shout;
+    static final Map<String, ImageView> imageViewMap = new HashMap<String, ImageView>();
 
     @FXML private ListView chatList;
 
-    ObservableList<String> data = FXCollections.observableArrayList("lHello");
+    @FXML private TextField input;
 
-
-    String peerName;
+    ObservableList<String> data = FXCollections.observableArrayList(
+            "lHello1",
+            "lHello2",
+            "lHello3");
 
     @Override @FXML
     public void initialize(URL location, ResourceBundle resources) {
+        logger.debug(input.getText());
         chatList.setItems(data);
         chatList.setCellFactory(new Callback<ListView, ListCell>() {
             @Override
@@ -53,18 +59,17 @@ public class ChatRoomController implements Initializable{
                 return new ColorRectCell();
             }
         });
-    }
-
-    public void init(String peerName) {
-        this.peerName = peerName;
+        chatList.setEditable(false);
     }
 
     @FXML
     private void handleShoutAction(ActionEvent actionEvent) {
-        data.add("r" + input.getText());
-        FuturePut futurePut = MyPeer.clientPeerDHT.add(Number160.createHash(peerName)).data(new Data(input.getText().getBytes())).start();
-        futurePut.awaitUninterruptibly();
-        logger.debug(futurePut.isSuccess());
+        data.add(input.getText());
+        chatList.scrollTo(data.size());
+    }
+
+    public void send(String str) {
+        logger.debug(str);
     }
 
     static class ColorRectCell extends ListCell<String> {
@@ -92,6 +97,13 @@ public class ChatRoomController implements Initializable{
             }
         }
 
+        ImageView getImageView(String uri) {
+            if (!imageViewMap.containsKey(uri)) {
+                imageViewMap.put(uri, createImageView(uri));
+            }
+            return imageViewMap.get(uri);
+        }
+
         ImageView createImageView(String uri) {
             ImageView imageView = new ImageView();
             imageView.setImage(new Image(uri));
@@ -101,4 +113,5 @@ public class ChatRoomController implements Initializable{
         }
     }
 
+//    static class ChatItem extends
 }
