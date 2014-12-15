@@ -1,1 +1,2 @@
 In chat list, the item may show multi times whe the list is not longer than the window.
+Error handling TextField finishing event.

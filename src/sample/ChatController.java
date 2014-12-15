@@ -1,6 +1,7 @@
 package sample;
 
 import com.sun.javafx.scene.control.skin.LabeledText;
+import com.sun.javafx.scene.control.skin.ListViewSkin;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -8,6 +9,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -61,7 +63,7 @@ public class ChatController implements Initializable{
         for (Map.Entry<Number160, String> entry: MyPeer.neighborPeers.entrySet()) {
             Number160 peerID = entry.getKey();
             String identification = entry.getValue();
-            neighborAddressObservableList.add(identification + "(" + peerID + ")");
+            neighborAddressObservableList.add(identification);
         }
     }
 
@@ -86,9 +88,11 @@ public class ChatController implements Initializable{
             @Override
             public void handle(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    String peerName = ((LabeledText)(event.getPickResult().getIntersectedNode())).getText();
+                    String peerName = (String)neighborAddress.getSelectionModel().getSelectedItem();
                     int location = peerName.indexOf("(");
-                    peerName = peerName.substring(0, location);
+                    if (location > 0) {
+                        peerName = peerName.substring(0, location);
+                    }
                     startChatRoom(peerName);
                 }
             }
@@ -109,7 +113,8 @@ public class ChatController implements Initializable{
             logger.catching(e);
             return;
         }
-        stage.setTitle(peerName);
+//        stage.setTitle(peerName);
+        stage.setTitle("/u1f60a");
         stage.setScene(new Scene(root));
         stage.show();
     }
