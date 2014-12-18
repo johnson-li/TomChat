@@ -14,7 +14,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
 import javafx.stage.Stage;
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.futures.BaseFutureAdapter;
@@ -22,7 +25,9 @@ import net.tomp2p.peers.Number160;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -56,6 +61,7 @@ public class ChatController implements Initializable{
     @FXML
     private void handleRefreshButtonAction(ActionEvent event) {
         refreshNeighbor();
+        MyPeer.showMap();
     }
 
     public static void refreshNeighbor() {
@@ -72,7 +78,7 @@ public class ChatController implements Initializable{
         stage.setResizable(false);
         Parent root;
         try {
-            root = FXMLLoader.load(getClass().getResource("../resources/find_peer.fxml"));
+            root = FXMLLoader.load(getClass().getResource("/find_peer.fxml"));
         }
         catch (Exception e) {
             logger.catching(e);
@@ -103,19 +109,47 @@ public class ChatController implements Initializable{
         Stage stage = new Stage();
         stage.setResizable(false);
         Parent root;
+        ChatRoomController chatRoomController;
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("../resources/chat_room.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/chat_room.fxml"));
             root = loader.load();
-            ChatRoomController chatRoomController = loader.getController();
+            chatRoomController = loader.getController();
             chatRoomController.init(peerName);
         }
         catch (Exception e) {
             logger.catching(e);
             return;
         }
-//        stage.setTitle(peerName);
-        stage.setTitle("/u1f60a");
-        stage.setScene(new Scene(root));
+        stage.setTitle(peerName);
+        Scene scene = new Scene(root);
+        stage.setScene(scene);
         stage.show();
+        initFileDropListener(scene, chatRoomController);
+    }
+
+    void initFileDropListener(final Scene scene, final ChatRoomController chatRoomController) {
+        scene.setOnDragOver(new EventHandler<DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                if (event.getGestureSource() != scene && event.getDragboard().hasFiles()) {
+                    event.acceptTransferModes(TransferMode.COPY);
+                }
+                event.consume();
+            }
+        });
+        scene.setOnDragDropped(new EventHandler<DragEvent>() {
+            @Override
+            public void handle(DragEvent event) {
+                Dragboard dragboard = event.getDragboard();
+                if (dragboard.hasFiles()) {
+                    for (File file : dragboard.getFiles()) {
+                        logger.debug(file);
+                        chatRoomController.sendFile(Paths.get(file.getAbsolutePath()));
+                    }
+                }
+                event.setDropCompleted(true);
+                event.consume();
+            }
+        });
     }
 }

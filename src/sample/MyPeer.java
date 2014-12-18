@@ -23,15 +23,13 @@ import java.util.*;
 public class MyPeer {
     static Logger logger = LogManager.getLogger();
     static PeerDHT clientPeerDHT;
-    static Bindings bindings = new Bindings();
     static NeighborPeers neighborPeers = new NeighborPeers();
     static final Set<MessageReceiver> messageReceiverSet = new HashSet<MessageReceiver>();
 
     public static boolean initPeer(String str, String ip) {
         PeerAddress serverPeerAddress;
         try {
-            bindings.addAddress(InetAddress.getByName(ip));
-            clientPeerDHT = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(str)).ports(Utils.CLIENT_PORT).start()).start();
+            clientPeerDHT = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(str)).ports(Utils.CLIENT_PORT).behindFirewall().start()).start();
             serverPeerAddress = new PeerAddress(Number160.ZERO, InetAddress.getByName(ip), Utils.TARGET_PORT, Utils.TARGET_PORT);
         }
         catch (Exception e) {
@@ -44,17 +42,17 @@ public class MyPeer {
             logger.info("*** FOUND THAT MY OUTSIDE ADDRESS IS " + futureDiscover.peerAddress());
         else {
             logger.warn("*** FAILED " + futureDiscover.failedReason());
-            clientPeerDHT.peer().connectionBean().channelServer().channelServerConfiguration().behindFirewall();
+//            clientPeerDHT.peer().connectionBean().channelServer().channelServerConfiguration().behindFirewall();
             PeerNAT peerNAT = new PeerBuilderNAT(clientPeerDHT.peer()).start();
-            FutureDiscover futureDiscoverNat = clientPeerDHT.peer().discover().peerAddress(serverPeerAddress).start();
-            FutureNAT futureNAT = peerNAT.startSetupPortforwarding(futureDiscoverNat);
+//            FutureDiscover futureDiscoverNat = clientPeerDHT.peer().discover().peerAddress(serverPeerAddress).start();
+            FutureNAT futureNAT = peerNAT.startSetupPortforwarding(futureDiscover);
             futureNAT.awaitUninterruptibly();
             if (futureNAT.isSuccess()) {
                 logger.info("future nat success");
             }
             else {
                 logger.warn(futureNAT.failedReason());
-                FutureRelayNAT futureRelayNAT = peerNAT.startRelay(futureDiscoverNat, futureNAT);
+                FutureRelayNAT futureRelayNAT = peerNAT.startRelay(futureDiscover, futureNAT);
                 futureRelayNAT.awaitUninterruptibly();
                 if (futureRelayNAT.isSuccess()) {
                     logger.info("future relay nat success");
@@ -76,6 +74,7 @@ public class MyPeer {
             clientPeerDHT.peer().objectDataReply(new ObjectDataReply() {
                 @Override
                 public Object reply(PeerAddress sender, Object request) throws Exception {
+                    if (sender.peerId().equals(MyPeer.clientPeerDHT.peerID())) return "";
                     logger.debug("received message from " + sender);
                     ByteBuf byteBuf = Utils.decodeBase64ByteBuf((String)request);
                     for (MessageReceiver messageReceiver: messageReceiverSet) {
@@ -88,13 +87,6 @@ public class MyPeer {
                     return "No receiver detected";
                 }
             });
-
-            try {
-                clientPeerDHT.put(Number160.createHash("server")).object("i am coming").start();
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
 
             return true;
         }
@@ -128,5 +120,11 @@ public class MyPeer {
 
     public static void addPeer(String peerName) {
         neighborPeers.put(Number160.createHash(peerName), peerName);
+    }
+
+    public static void showMap() {
+        for (PeerAddress peerAddress: clientPeerDHT.peerBean().peerMap().all()) {
+            logger.debug(peerAddress);
+        }
     }
 }

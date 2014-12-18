@@ -88,7 +88,7 @@ public class LoginController {
         stage.setResizable(false);
         Parent root;
         try {
-            root = FXMLLoader.load(getClass().getResource("../resources/chat.fxml"));
+            root = FXMLLoader.load(getClass().getResource("/chat.fxml"));
         }
         catch (Exception e) {
             logger.catching(e);
@@ -104,7 +104,7 @@ public class LoginController {
         stage.setResizable(false);
         Parent root;
         try {
-            root = FXMLLoader.load(getClass().getResource("../resources/setting.fxml"));
+            root = FXMLLoader.load(getClass().getResource("/setting.fxml"));
         }
         catch (Exception e) {
             logger.catching(e);

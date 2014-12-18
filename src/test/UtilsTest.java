@@ -1,5 +1,3 @@
-package test;
-
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.junit.Test;
 import sample.Utils;
