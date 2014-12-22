@@ -26,7 +26,9 @@ import javafx.util.Pair;
 import net.tomp2p.dht.FutureSend;
 import net.tomp2p.futures.BaseFuture;
 import net.tomp2p.futures.BaseFutureListener;
+import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.peers.Number160;
+import net.tomp2p.peers.PeerAddress;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -116,6 +118,24 @@ public class ChatRoomController implements Initializable{
                 request.release();
             }
         });
+        bootstrapToTarget(this.peerId);
+    }
+
+    void bootstrapToTarget(Number160 peerId) {
+        for (PeerAddress peerAddress: MyPeer.clientPeerDHT.peerBean().peerMap().all()) {
+            if (peerAddress.peerId().equals(peerId)) {
+                FutureBootstrap futureBootstrap = MyPeer.clientPeerDHT.peer().bootstrap().peerAddress(peerAddress).start();
+                futureBootstrap.awaitUninterruptibly();
+                if (futureBootstrap.isSuccess()) {
+                    logger.info("bootstrap to " + peerName + " successfully");
+                }
+                else {
+                    logger.warn(futureBootstrap.failedReason());
+                }
+                return;
+            }
+        }
+        logger.warn("target peer address is not available: " + peerName);
     }
 
     void storeFile(ByteBuf byteBuf, Path path) throws IOException{
