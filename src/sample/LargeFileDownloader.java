@@ -9,6 +9,7 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Random;
@@ -34,7 +35,7 @@ public class LargeFileDownloader {
             Files.createFile(path);
             RandomAccessFile randomAccessFile = new RandomAccessFile(path.toFile(), "rw");
             randomAccessFile.setLength(length);
-            fileChannel = FileChannel.open(path);
+            fileChannel = FileChannel.open(path, StandardOpenOption.WRITE);
         }
         catch (Exception e) {
             e.printStackTrace();

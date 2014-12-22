@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  */
 public class Utils {
     public static final int TARGET_PORT = 4000;
-    public static final int CLIENT_PORT = 4568;
+    public static final int CLIENT_PORT = 4569;
     static final String DOWNLOAD_PATH = "/home/johnson/Downloads/";
     static final String HEAD_PIC_PATH = DOWNLOAD_PATH + "heads/";
     static final String CACHE_PATH = "/tmp/";

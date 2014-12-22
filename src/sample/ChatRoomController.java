@@ -24,6 +24,8 @@ import javafx.stage.FileChooser;
 import javafx.util.Callback;
 import javafx.util.Pair;
 import net.tomp2p.dht.FutureSend;
+import net.tomp2p.futures.BaseFuture;
+import net.tomp2p.futures.BaseFutureListener;
 import net.tomp2p.peers.Number160;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +47,7 @@ import java.util.regex.Pattern;
 public class ChatRoomController implements Initializable{
     static Logger logger = LogManager.getLogger();
     static Map<Path, Long> pathMap = new HashMap<Path, Long>();
+    static Map<Long, Path> idMap = new HashMap<Long, Path>();
     static final int headImageSize = 50;
     static final int imageSize = 200;
     static final String MESSAGE_LEFT = "l";
@@ -106,6 +109,9 @@ public class ChatRoomController implements Initializable{
                     case LARGE_FILE_BODY:
                         downloadLargeFile(request);
                         break;
+                    case LARGE_FILE_REQUEST:
+                        responseToLargeFileRequest(request);
+                        break;
                 }
                 request.release();
             }
@@ -166,7 +172,14 @@ public class ChatRoomController implements Initializable{
             sendSmallFile(path);
         }
         else {
-            sendLargeFile(path);
+            sendLargeFileHeader(path);
+        }
+    }
+
+    void responseToLargeFileRequest(ByteBuf request) {
+        long id = request.readLong();
+        if (idMap.containsKey(id)) {
+            sendLargeFile(idMap.get(id));
         }
     }
 
@@ -176,6 +189,7 @@ public class ChatRoomController implements Initializable{
         Random random = new Random(new Date().getTime());
         long id = random.nextLong();
         pathMap.put(path, id);
+        idMap.put(id, path);
         byteBuf.writeLong(id);
         byteBuf.writeBytes(fileName.getBytes());
         try {
@@ -189,8 +203,7 @@ public class ChatRoomController implements Initializable{
     }
 
     boolean sendLargeFile(Path path) {
-        //ToDo large file transfer is not supported yet
-        if (!sendLargeFileHeader(path)) return false;
+//        if (!sendLargeFileHeader(path)) return false;
         try {
             FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ);
             ByteBuffer byteBuffer = ByteBuffer.allocate(1 << 20);
@@ -204,7 +217,9 @@ public class ChatRoomController implements Initializable{
                 }
                 byteBuf.writeLong(pathMap.get(path));
                 byteBuf.writeLong(offset);
-                if (!sendByteBuf(byteBuf.readBytes(byteBuffer))) break;
+                logger.info("sending large file with offset: " + offset);
+//                if (!sendByteBuf(byteBuf.writeBytes(byteBuffer))) break;
+                sendByteBufNotawiate(byteBuf.writeBytes(byteBuffer));
                 offset = fileChannel.position();
                 byteBuffer.clear();
             }
@@ -276,6 +291,7 @@ public class ChatRoomController implements Initializable{
                 }
             }
             logger.warn("no peer replied");
+            return true;
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -283,14 +299,62 @@ public class ChatRoomController implements Initializable{
         return false;
     }
 
+    //await may contribute to error when transporting large file, and should use this function
+    void sendByteBufNotawiate(final ByteBuf byteBuf) {
+        try {
+            FutureSend futureSend = MyPeer.clientPeerDHT.send(Number160.createHash(peerName)).object(Utils.encodeBase64(byteBuf)).start();
+            futureSend.addListener(new BaseFutureListener<FutureSend>() {
+                @Override
+                public void operationComplete(FutureSend send) throws Exception {
+                    byteBuf.release();
+                    for (Object object: send.rawDirectData2().values()) {
+                        logger.debug(object);
+                        if (object.equals("OK")) {
+                            logger.info("message sent succeeded");
+                            return;
+                        }
+                        else if (object.equals("No receiver detected")) {
+                            logger.warn("maybe you are not registered by target");
+                        }
+                    }
+                    logger.warn("no peer replied");
+                }
+
+                @Override
+                public void exceptionCaught(Throwable throwable) throws Exception {
+                    logger.catching(throwable);
+                }
+            });
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     void initLargeFileDownloader(ByteBuf request) {
-        long id = request.readLong();
-        byte[] bytes = new byte[request.readableBytes()];
+        final long id = request.readLong();
+        byte[] bytes = new byte[request.readableBytes() - Long.BYTES];
         request.readBytes(bytes);
-        String fileName = new String(bytes);
-        long length = request.readLong();
-        Path path = Paths.get(Utils.DOWNLOAD_PATH, fileName);
-        LargeFileDownloader.startNewLargeFileDownloader(id, path, length);
+        final String fileName = new String(bytes);
+        final long length = request.readLong();
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Save file");
+                fileChooser.setInitialDirectory(new File(Utils.DOWNLOAD_PATH));
+                fileChooser.setInitialFileName(fileName);
+                File file = fileChooser.showSaveDialog(input.getContextMenu());
+                if (file == null) return;
+                Path largeFileDownloadPath = Paths.get(file.getAbsolutePath());
+                LargeFileDownloader.startNewLargeFileDownloader(id, largeFileDownloadPath, length);
+                ByteBuf byteBuf = allocByteBuf(MessageType.LARGE_FILE_REQUEST);
+                byteBuf.writeLong(id);
+                sendByteBuf(byteBuf);
+            }
+        });
+//        Path path = Paths.get(Utils.DOWNLOAD_PATH, fileName);
+//        LargeFileDownloader.startNewLargeFileDownloader(id, path, length);
     }
 
     boolean downloadLargeFile(ByteBuf request) {
