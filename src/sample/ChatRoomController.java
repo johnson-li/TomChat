@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
  */
 public class ChatRoomController implements Initializable{
     static Logger logger = LogManager.getLogger();
+    static Map<Path, Long> pathMap = new HashMap<Path, Long>();
     static final int headImageSize = 50;
     static final int imageSize = 200;
     static final String MESSAGE_LEFT = "l";
@@ -60,6 +61,7 @@ public class ChatRoomController implements Initializable{
     ObservableList<String> data = FXCollections.observableArrayList("lHello");
 
     String peerName;
+    Number160 peerId;
 
     @Override @FXML
     public void initialize(URL location, ResourceBundle resources) {
@@ -74,6 +76,7 @@ public class ChatRoomController implements Initializable{
 
     public void init(final String peerName) {
         this.peerName = peerName;
+        this.peerId = Number160.createHash(peerName);
         MyPeer.registerMessageReceiver(new MessageReceiver() {
             @Override
             public boolean checkMine(Number160 peerID) {
@@ -92,52 +95,27 @@ public class ChatRoomController implements Initializable{
                         addRemoteMessage(message);
                         break;
                     case PICTURE:
-//                        byte[] pictureBytes = new byte[request.readableBytes()];
-//                        request.readBytes(pictureBytes);
-                        Random random = new Random(new Date().getTime());
-                        String tmpFileName = String.valueOf(random.nextInt());
-                        String filePath = Utils.CACHE_PATH + "/" + tmpFileName;
-                        Path path = Paths.get(filePath);
-                        try {
-                            storeFile(request, path);
-                            addRemotePicture(path);
-                        }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        downloadPicture(request);
                         break;
                     case SMALL_FILE:
-                        int fileNameLength = request.readInt();
-                        byte[] fileNameBytes = new byte[fileNameLength];
-                        request.readBytes(fileNameBytes, 0, fileNameLength);
-                        String fileName = new String(fileNameBytes);
-                        FileChooser fileChooser = new FileChooser();
-                        fileChooser.setTitle("Save file");
-                        fileChooser.setInitialDirectory(new File(Utils.DOWNLOAD_PATH));
-                        fileChooser.setInitialFileName(fileName);
-                        File file = fileChooser.showSaveDialog(input.getContextMenu());
-                        if (file == null) return;
-                        Path smallFileDownloadPath = Paths.get(file.getAbsolutePath());
-                        try {
-                            storeFile(request, smallFileDownloadPath);
-                            addRemoteFile(smallFileDownloadPath);
-                        }
-                        catch (Exception e) {
-                            logger.catching(e);
-                        }
-                        //ToDo
+                        downloadSmallFile(request);
                         break;
-                    case LARGE_FILE:
-                        //ToDo
+                    case LARGE_FILE_HEAD:
+                        initLargeFileDownloader(request);
+                        break;
+                    case LARGE_FILE_BODY:
+                        downloadLargeFile(request);
                         break;
                 }
+                request.release();
             }
         });
     }
 
     void storeFile(ByteBuf byteBuf, Path path) throws IOException{
         logger.debug(byteBuf.readableBytes());
-        FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+        Files.deleteIfExists(path);
+        FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         fileChannel.write(byteBuf.nioBuffer());
         fileChannel.close();
     }
@@ -150,6 +128,7 @@ public class ChatRoomController implements Initializable{
 
     boolean sendMessage(String message, String peerName) {
         ByteBuf byteBuf = Unpooled.buffer();
+        byteBuf.writeBytes(peerId.toByteArray());
         byteBuf.writeInt(MessageType.MESSAGE.ordinal());
         byteBuf.writeBytes(message.getBytes());
         return sendByteBuf(byteBuf);
@@ -187,8 +166,53 @@ public class ChatRoomController implements Initializable{
             sendSmallFile(path);
         }
         else {
-            //ToDo large file transfer is not supported yet
+            sendLargeFile(path);
         }
+    }
+
+    boolean sendLargeFileHeader(Path path) {
+        String fileName = path.getFileName().toString();
+        ByteBuf byteBuf = allocByteBuf(MessageType.LARGE_FILE_HEAD);
+        Random random = new Random(new Date().getTime());
+        long id = random.nextLong();
+        pathMap.put(path, id);
+        byteBuf.writeLong(id);
+        byteBuf.writeBytes(fileName.getBytes());
+        try {
+            byteBuf.writeLong(Files.size(path));
+            return sendByteBuf(byteBuf);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    boolean sendLargeFile(Path path) {
+        //ToDo large file transfer is not supported yet
+        if (!sendLargeFileHeader(path)) return false;
+        try {
+            FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(1 << 20);
+            long offset = 0;
+            while (fileChannel.read(byteBuffer) > 0) {
+                byteBuffer.flip();
+                ByteBuf byteBuf = allocByteBuf(MessageType.LARGE_FILE_BODY);
+                if (!pathMap.containsKey(path)) {
+                    logger.warn("large file download not initiated");
+                    return false;
+                }
+                byteBuf.writeLong(pathMap.get(path));
+                byteBuf.writeLong(offset);
+                if (!sendByteBuf(byteBuf.readBytes(byteBuffer))) break;
+                offset = fileChannel.position();
+                byteBuffer.clear();
+            }
+        }
+        catch (Exception e) {
+            logger.catching(e);
+        }
+        return false;
     }
 
     boolean sendSmallFile(Path path) {
@@ -202,6 +226,7 @@ public class ChatRoomController implements Initializable{
             byteBuffer.flip();
             fileChannel.close();
             ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(peerId.toByteArray());
             byteBuf.writeInt(MessageType.SMALL_FILE.ordinal());
             byteBuf.writeInt(fileName.getBytes().length);
             byteBuf.writeBytes(fileName.getBytes());
@@ -224,6 +249,7 @@ public class ChatRoomController implements Initializable{
             byteBuffer.flip();
             fileChannel.close();
             ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(peerId.toByteArray());
             byteBuf.writeInt(MessageType.PICTURE.ordinal());
             byteBuf.writeBytes(byteBuffer);
             return sendByteBuf(byteBuf);
@@ -257,6 +283,62 @@ public class ChatRoomController implements Initializable{
         return false;
     }
 
+    void initLargeFileDownloader(ByteBuf request) {
+        long id = request.readLong();
+        byte[] bytes = new byte[request.readableBytes()];
+        request.readBytes(bytes);
+        String fileName = new String(bytes);
+        long length = request.readLong();
+        Path path = Paths.get(Utils.DOWNLOAD_PATH, fileName);
+        LargeFileDownloader.startNewLargeFileDownloader(id, path, length);
+    }
+
+    boolean downloadLargeFile(ByteBuf request) {
+        return LargeFileDownloader.receive(request);
+    }
+
+    void downloadSmallFile(ByteBuf request) {
+        int fileNameLength = request.readInt();
+        byte[] fileNameBytes = new byte[fileNameLength];
+        request.readBytes(fileNameBytes, 0, fileNameLength);
+        final String fileName = new String(fileNameBytes);
+        final ByteBuf byteBuf = request.copy();
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Save file");
+                fileChooser.setInitialDirectory(new File(Utils.DOWNLOAD_PATH));
+                fileChooser.setInitialFileName(fileName);
+                File file = fileChooser.showSaveDialog(input.getContextMenu());
+                if (file == null) return;
+                Path smallFileDownloadPath = Paths.get(file.getAbsolutePath());
+                try {
+                    storeFile(byteBuf, smallFileDownloadPath);
+                    byteBuf.clear();
+                    addRemoteFile(smallFileDownloadPath);
+                }
+                catch (Exception e) {
+                    logger.catching(e);
+                }
+            }
+        });
+    }
+
+    void downloadPicture(ByteBuf request) {
+        Random random = new Random(new Date().getTime());
+        String tmpFileName = String.valueOf(random.nextInt());
+        String filePath = Utils.CACHE_PATH + "/" + tmpFileName;
+        Path path = Paths.get(filePath);
+        try {
+            storeFile(request, path);
+            addRemotePicture(path);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     boolean checkImageFile(Path path) {
         String mimeType = new MimetypesFileTypeMap().getContentType(path.toFile());
         logger.debug(mimeType);
@@ -265,7 +347,21 @@ public class ChatRoomController implements Initializable{
 
     boolean checkSmallFile(Path path) {
         //ToDo the small file size threshold is to be determined
-        return true;
+        try {
+            long size = FileChannel.open(path).size();
+            return size < (1 << 20);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    ByteBuf allocByteBuf(MessageType messageType) {
+        ByteBuf byteBuf = Unpooled.buffer();
+        byteBuf.writeBytes(peerId.toByteArray());
+        byteBuf.writeInt(messageType.ordinal());
+        return byteBuf;
     }
 
     static class ColorRectCell extends ListCell<String> {
@@ -293,7 +389,6 @@ public class ChatRoomController implements Initializable{
                             setGraphic(hBox);
                         }
                         else if (item.startsWith(PICTURE_LEFT)) {
-                            logger.debug(message);
                             hBox.setAlignment(Pos.TOP_LEFT);
                             Path path = Paths.get(message);
                             try {
@@ -306,7 +401,6 @@ public class ChatRoomController implements Initializable{
                             }
                         }
                         else if (item.startsWith(PICTURE_RIGHT)) {
-                            logger.entry();
                             hBox.setAlignment(Pos.TOP_RIGHT);
                             Path path = Paths.get(message);
                             try {

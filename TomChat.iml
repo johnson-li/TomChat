@@ -25,6 +25,7 @@
     <orderEntry type="library" name="Maven: io.netty:netty-all:4.0.23.Final" level="project" />
     <orderEntry type="library" name="Maven: com.googlecode.json-simple:json-simple:1.1.1" level="project" />
     <orderEntry type="library" name="Maven: org.bitlet:weupnp:0.1.2" level="project" />
+    <orderEntry type="library" name="Maven: org.jboss.marshalling:jboss-marshalling:1.4.8.Final" level="project" />
   </component>
 </module>
 

@@ -14,7 +14,12 @@ import net.tomp2p.storage.Data;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -25,6 +30,7 @@ public class MyPeer {
     static PeerDHT clientPeerDHT;
     static NeighborPeers neighborPeers = new NeighborPeers();
     static final Set<MessageReceiver> messageReceiverSet = new HashSet<MessageReceiver>();
+    static Profile profile = new Profile();
 
     public static boolean initPeer(String str, String ip) {
         PeerAddress serverPeerAddress;
@@ -74,9 +80,13 @@ public class MyPeer {
             clientPeerDHT.peer().objectDataReply(new ObjectDataReply() {
                 @Override
                 public Object reply(PeerAddress sender, Object request) throws Exception {
-                    if (sender.peerId().equals(MyPeer.clientPeerDHT.peerID())) return "";
-                    logger.debug("received message from " + sender);
+//                    if (sender.peerId().equals(MyPeer.clientPeerDHT.peerID())) return "";
                     ByteBuf byteBuf = Utils.decodeBase64ByteBuf((String)request);
+                    byte[] bytes = new byte[Number160.BYTE_ARRAY_SIZE];
+                    byteBuf.readBytes(bytes);
+                    Number160 targetPeerID = new Number160(bytes);
+                    if (!targetPeerID.equals(MyPeer.clientPeerDHT.peerID())) return "";
+                    logger.debug("received message from " + sender);
                     for (MessageReceiver messageReceiver: messageReceiverSet) {
                         if (messageReceiver.checkMine(sender.peerId())) {
                             messageReceiver.onReceived(byteBuf);
@@ -125,6 +135,42 @@ public class MyPeer {
     public static void showMap() {
         for (PeerAddress peerAddress: clientPeerDHT.peerBean().peerMap().all()) {
             logger.debug(peerAddress);
+        }
+    }
+
+    public static void updateProfile() {
+        try {
+            FuturePut futurePut = clientPeerDHT.put(clientPeerDHT.peerID()).data(new Data(profile)).start();
+            futurePut.awaitUninterruptibly();
+            if (futurePut.isSuccess()) {
+                logger.info("update profile succeeded");
+            }
+            else {
+                logger.error("update profile failed");
+            }
+        }
+        catch (Exception e) {
+            logger.catching(e);
+        }
+    }
+
+    public static void updateHeadPic(Path path) throws IOException{
+        Random random = new Random(new Date().getTime());
+        Number160 number160 = Number160.createHash(random.nextLong());
+        FileChannel fileChannel = FileChannel.open(path);
+        if (fileChannel.size() > Integer.MAX_VALUE) throw new IOException("head pic size too large");
+        ByteBuffer byteBuffer = ByteBuffer.allocate((int)fileChannel.size());
+        fileChannel.read(byteBuffer);
+        byteBuffer.flip();
+        FuturePut futurePut = clientPeerDHT.put(number160).data(new Data(byteBuffer)).start();
+        futurePut.awaitUninterruptibly();
+        if (futurePut.isSuccess()) {
+            logger.info("update head pic successfully");
+            profile.headPic = number160;
+            updateProfile();
+        }
+        else {
+            logger.error("update head pic failed");
         }
     }
 }
