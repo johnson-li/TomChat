@@ -57,6 +57,8 @@ public class ChatRoomController implements Initializable{
     static final String PICTURE_LEFT = "L";
     static final String PICTURE_RIGHT = "R";
 
+    Number160 chatRoomID = Number160.ZERO;
+
     @FXML private TextField input;
 
     @FXML private Button shout;
@@ -458,18 +460,35 @@ public class ChatRoomController implements Initializable{
                     @Override
                     public void run() {
                         HBox hBox = new HBox();
-                        ImageView imageView = createHeadImageView("file:///home/johnson/Pictures/head.jpeg");
+                        ImageView imageView;
+                        if (item.startsWith(MESSAGE_LEFT) || item.startsWith(PICTURE_LEFT)) {
+                            imageView = createHeadImageView("file:///home/johnson/Pictures/head.jpeg");
+                        }
+                        else {
+                            imageView = createHeadImageView("file:///home/johnson/Pictures/EMOJICOCK_V15.gif");
+                        }
+                        imageView.setStyle("-fx-padding: 10");
                         hBox.setStyle("-fx-background-color: transparent");
                         if (item.startsWith(MESSAGE_LEFT)) {
                             hBox.setAlignment(Pos.TOP_LEFT);
                             TextFlow textFlow = createTextFlow(message);
-                            hBox.getChildren().addAll(imageView, textFlow);
+                            textFlow.setStyle("-fx-background-color: #ffff00;" +
+                                    "-fx-opacity: 0.8;" +
+                                    "-fx-background-radius: 10;" +
+                                    "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);");
+                            Text text = new Text("   ");
+                            hBox.getChildren().addAll(imageView, text, textFlow);
                             setGraphic(hBox);
                         }
                         else if (item.startsWith(MESSAGE_RIGHT)) {
                             hBox.setAlignment(Pos.TOP_RIGHT);
                             TextFlow textFlow = createTextFlow(message);
-                            hBox.getChildren().addAll(textFlow, imageView);
+                            textFlow.setStyle("-fx-background-color: #ffff00;" +
+                                    "-fx-opacity: 0.8;" +
+                                    "-fx-background-radius: 10;" +
+                                    "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);");
+                            Text text = new Text("   ");
+                            hBox.getChildren().addAll(textFlow, text, imageView);
                             setGraphic(hBox);
                         }
                         else if (item.startsWith(PICTURE_LEFT)) {
@@ -502,6 +521,10 @@ public class ChatRoomController implements Initializable{
                     }
                 });
             }
+        }
+
+        boolean checkLeft(String s) {
+            return s.equals(MESSAGE_LEFT) || s.equals(PICTURE_LEFT);
         }
 
         TextFlow createTextFlow(String message) {

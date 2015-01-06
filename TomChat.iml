@@ -17,7 +17,9 @@
           <root url="jar://$MODULE_DIR$/lib/tomp2p-core-5.0-Alpha26.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/sources/tomp2p-core-5.0-Alpha26-sources.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library">
@@ -26,7 +28,9 @@
           <root url="jar://$MODULE_DIR$/lib/tomp2p-dht-5.0-Alpha26.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/sources/tomp2p-dht-5.0-Alpha26-sources.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library">

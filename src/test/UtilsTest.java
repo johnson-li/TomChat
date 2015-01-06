@@ -1,5 +1,6 @@
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.tomp2p.p2p.Peer;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.junit.Test;
 import sample.Utils;
